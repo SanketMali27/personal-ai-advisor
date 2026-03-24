@@ -18,12 +18,18 @@ async function routeToAgent({ agentType, userId, userMessage, history }) {
     throw new Error(`Unknown agent type: ${agentType}`);
   }
 
-  const context = await retrieveContext({
-    query: userMessage,
-    userId,
-    domain: agentConfig.domain,
-    topK: 5,
-  });
+  let context = [];
+
+  try {
+    context = await retrieveContext({
+      query: userMessage,
+      userId,
+      domain: agentConfig.domain,
+      topK: 5,
+    });
+  } catch (error) {
+    console.error('Context retrieval failed:', error.message);
+  }
 
   const response = await agentConfig.runner({
     userId,

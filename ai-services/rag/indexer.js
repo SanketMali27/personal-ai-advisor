@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
-const pdfParse = require('pdf-parse');
-const { v4: uuidv4 } = require('uuid');
+const { serverRequire } = require('../../shared/runtime');
+const pdfParse = serverRequire('pdf-parse');
+const { v4: uuidv4 } = serverRequire('uuid');
 const { generateEmbedding } = require('../embeddings/embedder');
 const {
   ensureCollection,

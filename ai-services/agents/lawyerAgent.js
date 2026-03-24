@@ -1,5 +1,8 @@
 const groq = require('../groqClient');
 
+require('dotenv').config();
+load_env();
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const SYSTEM_PROMPT = `You are a knowledgeable legal assistant.
 Help users understand legal documents, contracts, rights, and general
 legal concepts. Always clarify that you are not a licensed attorney and

@@ -81,7 +81,7 @@ export default function Dashboard() {
               <h2 className="text-2xl font-semibold text-ink">{agent.label} Agent</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{agent.desc}</p>
               <p className="mt-8 text-sm font-semibold text-tide transition group-hover:translate-x-1">
-                Open workspace ->
+                Open workspace -
               </p>
             </button>
           ))}

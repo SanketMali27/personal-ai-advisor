@@ -17,15 +17,14 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route
-          path="/"
+        <Route path="/"
           element={
             <PrivateRoute>
               <Dashboard />
             </PrivateRoute>
           }
         />
-         <Route
+        <Route
           path="/chat/:agentType"
           element={
             <PrivateRoute>

@@ -1,5 +1,8 @@
 const groq = require('../groqClient');
 
+require('dotenv').config();
+load_env();
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const SYSTEM_PROMPT = `You are a professional financial advisor assistant.
 Help users understand their financial documents, budgets, investment portfolios,
 tax records, and financial planning questions. Always clarify you are not a

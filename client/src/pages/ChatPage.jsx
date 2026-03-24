@@ -74,7 +74,7 @@ export default function ChatPage() {
       setSessions((prev) =>
         prev.map((session) =>
           session._id === activeId &&
-          (!session.title || session.title === `${agentType} chat`)
+            (!session.title || session.title === `${agentType} chat`)
             ? { ...session, title: userMsg.slice(0, 60) }
             : session
         )
@@ -118,11 +118,10 @@ export default function ChatPage() {
               <button
                 key={session._id}
                 onClick={() => openSession(session._id)}
-                className={`mb-2 w-full rounded-2xl px-4 py-3 text-left text-sm transition ${
-                  activeId === session._id
+                className={`mb-2 w-full rounded-2xl px-4 py-3 text-left text-sm transition ${activeId === session._id
                     ? 'bg-amber-100 text-ink'
                     : 'bg-stone-50 text-slate-600 hover:bg-stone-100'
-                }`}
+                  }`}
               >
                 <p className="truncate font-medium">{session.title}</p>
               </button>
@@ -149,11 +148,10 @@ export default function ChatPage() {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-2xl rounded-[1.6rem] px-5 py-4 text-sm leading-7 shadow-sm ${
-                    message.role === 'user'
+                  className={`max-w-2xl rounded-[1.6rem] px-5 py-4 text-sm leading-7 shadow-sm ${message.role === 'user'
                       ? 'bg-ink text-white'
                       : 'border border-stone-200 bg-white text-slate-700'
-                  }`}
+                    }`}
                 >
                   {message.message}
                 </div>

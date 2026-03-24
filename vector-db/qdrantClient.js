@@ -1,8 +1,10 @@
-const { QdrantClient } = require('@qdrant/js-client-rest');
+const { serverRequire } = require('../shared/runtime');
+
+const { QdrantClient } = serverRequire('@qdrant/js-client-rest');
 
 const client = new QdrantClient({ url: process.env.QDRANT_URL });
 const COLLECTION = process.env.QDRANT_COLLECTION;
-const VECTOR_SIZE = 1536;
+const VECTOR_SIZE = Number(process.env.EMBEDDING_VECTOR_SIZE || 384);
 
 async function ensureCollection() {
   const collections = await client.getCollections();

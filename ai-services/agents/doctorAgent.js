@@ -1,5 +1,10 @@
 const groq = require('../groqClient');
 
+require('dotenv').config();
+load_env();
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
+
+
 const SYSTEM_PROMPT = `You are a knowledgeable and empathetic medical advisor.
 Your role is to help users understand their medical documents, lab results,
 symptoms, and health questions. Always recommend consulting a licensed physician
