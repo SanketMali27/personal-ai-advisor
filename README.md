@@ -113,58 +113,105 @@ Users register, upload domain-relevant PDFs or text files, and converse with a s
 ## 📁 Folder Structure
 
 ```
+Project file structure (exact, excluding node_modules and uploaded runtime files):
+
 personal-ai-advisor/
-│
-├── client/                         # React frontend
-│   ├── public/
-│   └── src/
-│       ├── api/                    # Axios API calls
-│       ├── components/             # Reusable UI components
-│       ├── pages/                  # Route-level page components
-│       │   ├── Auth/               # Login & Register pages
-│       │   ├── Dashboard/          # Domain selection dashboard
-│       │   └── Chat/               # Domain-specific chat pages
-│       ├── store/                  # Zustand state stores
-│       ├── hooks/                  # Custom React hooks
-│       └── main.jsx                # App entry point
-│
-├── server/                         # Express REST API
-│   ├── routes/                     # Route definitions
-│   │   ├── auth.routes.js
-│   │   ├── chat.routes.js
-│   │   └── upload.routes.js
-│   ├── controllers/                # Route handler logic
-│   ├── models/                     # Mongoose models
-│   │   ├── User.js
-│   │   ├── Session.js
-│   │   └── Document.js
-│   ├── middleware/                 # Auth, error handling, multer
-│   ├── uploads/                    # Temporarily stored uploaded files
-│   └── index.js                    # Server entry point
-│
-├── ai-services/                    # AI agent logic and RAG pipeline
-│   ├── agents/                     # Per-domain agent definitions
+├── ai-services/
+│   ├── agents/
+│   │   ├── .gitkeep
 │   │   ├── doctorAgent.js
-│   │   ├── teacherAgent.js
 │   │   ├── financeAgent.js
-│   │   └── lawyerAgent.js
-│   ├── rag/                        # Retrieval-augmented generation
-│   │   ├── embeddings.js           # Embedding generation
-│   │   ├── retriever.js            # Qdrant similarity search
-│   │   └── pipeline.js             # End-to-end RAG orchestration
-│   └── orchestrator.js             # Routes messages to the right agent
-│
-├── vector-db/                      # Qdrant integration
-│   ├── client.js                   # Qdrant client setup
-│   ├── collections.js              # Collection management per domain
-│   └── upsert.js                   # Indexing document chunks
-│
-├── shared/                         # Shared utilities and config
-│   ├── config.js
-│   └── constants.js
-│
-├── .env.example                    # Sample environment variables
+│   │   ├── lawyerAgent.js
+│   │   └── teacherAgent.js
+│   ├── embeddings/
+│   │   ├── .gitkeep
+│   │   └── embedder.js
+│   ├── orchestrator/
+│   │   ├── .gitkeep
+│   │   └── agentRouter.js
+│   ├── rag/
+│   │   ├── .gitkeep
+│   │   ├── indexer.js
+│   │   └── retriever.js
+│   ├── .env
+│   ├── .env.example
+│   └── groqClient.js
+├── client/
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── .gitkeep
+│   │   │   ├── axios.js
+│   │   │   └── services.js
+│   │   ├── components/
+│   │   │   ├── .gitkeep
+│   │   │   └── MarkdownRenderer.jsx
+│   │   ├── hooks/
+│   │   │   └── .gitkeep
+│   │   ├── pages/
+│   │   │   ├── .gitkeep
+│   │   │   ├── ChatPage.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── LoginPage.jsx
+│   │   │   ├── RegisterPage.jsx
+│   │   │   └── UploadPage.jsx
+│   │   ├── store/
+│   │   │   ├── .gitkeep
+│   │   │   └── authStore.js
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   ├── main.jsx
+│   │   └── markdown-renderer.css
+│   ├── .env
+│   ├── .env.example
+│   ├── index.html
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── tailwind.config.js
+│   └── vite.config.js
+├── server/
+│   ├── config/
+│   │   ├── .gitkeep
+│   │   └── db.js
+│   ├── controllers/
+│   │   ├── .gitkeep
+│   │   ├── authController.js
+│   │   ├── chatController.js
+│   │   └── documentController.js
+│   ├── middleware/
+│   │   ├── .gitkeep
+│   │   ├── auth.js
+│   │   └── errorHandler.js
+│   ├── models/
+│   │   ├── .gitkeep
+│   │   ├── ChatMessage.js
+│   │   ├── ChatSession.js
+│   │   ├── Document.js
+│   │   └── User.js
+│   ├── routes/
+│   │   ├── .gitkeep
+│   │   ├── auth.js
+│   │   ├── chat.js
+│   │   └── documents.js
+│   ├── services/
+│   │   └── .gitkeep
+│   ├── uploads/
+│   │   └── .gitkeep
+│   ├── .env
+│   ├── .env.example
+│   ├── index.js
+│   ├── package-lock.json
+│   └── package.json
+├── shared/
+│   ├── .env
+│   └── runtime.js
+├── vector-db/
+│   ├── .env
+│   ├── .env.example
+│   └── qdrantClient.js
+├── .gitignore
 └── README.md
+
 ```
 
 ---
