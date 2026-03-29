@@ -15,5 +15,5 @@ export const chatAPI = {
 
 export const documentAPI = {
   upload: (formData) => api.post('/documents', formData),
-  getDocuments: () => api.get('/documents'),
+  getDocuments: (domain) => api.get('/documents', { params: domain ? { domain } : {} }),
 };

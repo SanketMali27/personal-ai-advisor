@@ -56,7 +56,14 @@ exports.uploadDocument = async (req, res, next) => {
 
 exports.getUserDocuments = async (req, res, next) => {
   try {
-    const docs = await Document.find({ userId: req.user.id }).sort('-createdAt');
+    const filter = { userId: req.user.id };
+
+    if (req.query.domain) {
+      filter.domain = req.query.domain;
+      filter.status = 'indexed';
+    }
+
+    const docs = await Document.find(filter).sort('-createdAt');
     res.json(docs);
   } catch (err) {
     next(err);

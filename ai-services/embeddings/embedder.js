@@ -2,7 +2,11 @@ const { serverRequire } = require('../../shared/runtime');
 
 const axios = serverRequire('axios');
 const HF_API_KEY = process.env.HF_API_KEY;
-const HF_EMBEDDING_MODEL = 'sentence-transformers/all-MiniLM-L6-v2';
+const HF_EMBEDDING_MODEL =
+  process.env.HF_EMBEDDING_MODEL || 'BAAI/bge-small-en-v1.5';
+const HF_INFERENCE_BASE_URL =
+  process.env.HF_INFERENCE_BASE_URL ||
+  'https://router.huggingface.co/hf-inference/models';
 
 function averagePool(tokenEmbeddings) {
   const dimensions = tokenEmbeddings[0].length;
@@ -18,6 +22,14 @@ function averagePool(tokenEmbeddings) {
 }
 
 function normalizeEmbedding(data) {
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const nestedEmbedding = data.embedding || data.embeddings || data.data;
+
+    if (nestedEmbedding) {
+      return normalizeEmbedding(nestedEmbedding);
+    }
+  }
+
   if (!Array.isArray(data) || data.length === 0) {
     throw new Error('Embedding provider returned an empty response');
   }
@@ -39,10 +51,21 @@ async function generateEmbedding(text) {
       throw new Error('HF_API_KEY is not configured');
     }
 
+    const normalizedText = String(text || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!normalizedText) {
+      throw new Error('Cannot generate an embedding for empty text');
+    }
+
     const response = await axios.post(
-      `https://api-inference.huggingface.co/pipeline/feature-extraction/${HF_EMBEDDING_MODEL}`,
+      `${HF_INFERENCE_BASE_URL}/${HF_EMBEDDING_MODEL}`,
       {
-        inputs: text.replace(/\n/g, ' '),
+        inputs: normalizedText,
+        options: {
+          wait_for_model: true,
+        },
       },
       {
         headers: {

@@ -6,4 +6,5 @@ server/uploads/*
 server/.env
 ai-services/node_modules/
 ai-services/.env
+vector-db/.env
 client/.env

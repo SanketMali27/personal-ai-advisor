@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('../shared/runtime');
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -9,6 +9,7 @@ const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const documentRoutes = require('./routes/documents');
 const { errorHandler } = require('./middleware/errorHandler');
+const { ensureCollection } = require('../vector-db/qdrantClient');
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -28,13 +29,18 @@ app.use('/api/documents', documentRoutes);
 
 app.use(errorHandler);
 
-connectDB()
-  .then(() => {
+async function startServer() {
+  try {
+    await ensureCollection();
+    await connectDB();
+
     app.listen(port, () => {
       console.log(`Server listening on port ${port}`);
     });
-  })
-  .catch((err) => {
+  } catch (err) {
     console.error('Failed to start server:', err);
     process.exit(1);
-  });
+  }
+}
+
+startServer();
