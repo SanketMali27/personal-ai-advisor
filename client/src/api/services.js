@@ -30,3 +30,22 @@ export const documentAPI = {
   getDocuments: (domain) => api.get('/documents', { params: domain ? { domain } : {} }),
   summarize: (documentId) => api.post(`/documents/${documentId}/summarize`),
 };
+
+export const youtubeAPI = {
+  process: (data) => api.post('/youtube/process', data),
+  chat: async (data) => {
+    const response = await api.post('/youtube/chat', data);
+
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        reply: response.data?.reply || '',
+        sources: Array.isArray(response.data?.sources) ? response.data.sources : [],
+      },
+    };
+  },
+  history: () => api.get('/youtube/history'),
+  getVideo: (videoId) => api.get(`/youtube/${videoId}`),
+  deleteVideo: (videoId) => api.delete(`/youtube/${videoId}`),
+};

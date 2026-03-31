@@ -8,6 +8,7 @@ const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth');
 const chatRoutes = require('./routes/chat');
 const documentRoutes = require('./routes/documents');
+const youtubeRoutes = require('./routes/youtube');
 const { errorHandler } = require('./middleware/errorHandler');
 const { ensureCollection } = require('../vector-db/qdrantClient');
 
@@ -26,6 +27,7 @@ app.use('/uploads', express.static(uploadsDir));
 app.use('/api/auth', authRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/documents', documentRoutes);
+app.use('/api/youtube', youtubeRoutes);
 
 app.use(errorHandler);
 

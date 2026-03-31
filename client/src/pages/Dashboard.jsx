@@ -30,6 +30,13 @@ const AGENTS = [
     desc: 'Legal guidance and contract analysis',
     accent: 'from-amber-100 to-yellow-50 border-amber-200',
   },
+  {
+    type: 'youtube',
+    label: 'YouTube',
+    badge: 'YT',
+    desc: 'Transcript-powered video summaries and Q&A',
+    accent: 'from-red-100 to-orange-50 border-red-200',
+  },
 ];
 
 export default function Dashboard() {
@@ -68,15 +75,21 @@ export default function Dashboard() {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-5">
           {AGENTS.map((agent) => (
             <button
               key={agent.type}
-              onClick={() => navigate(`/chat/${agent.type}`)}
+              onClick={() => navigate(agent.type === 'youtube' ? '/youtube' : `/chat/${agent.type}`)}
               className={`group rounded-[2rem] border bg-gradient-to-br ${agent.accent} p-6 text-left shadow-panel transition duration-300 hover:-translate-y-1`}
             >
               <div className="mb-10 flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-sm font-bold tracking-[0.25em] text-ink shadow-sm">
-                {agent.badge}
+                {agent.type === 'youtube' ? (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.6 3.5 12 3.5 12 3.5s-7.6 0-9.4.6A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.8.6 9.4.6 9.4.6s7.6 0 9.4-.6a3 3 0 0 0 2.1-2.1A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8ZM9.5 15.7V8.3L16 12Z" />
+                  </svg>
+                ) : (
+                  agent.badge
+                )}
               </div>
               <h2 className="text-2xl font-semibold text-ink">{agent.label} Agent</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{agent.desc}</p>

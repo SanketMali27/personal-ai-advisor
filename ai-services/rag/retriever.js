@@ -1,5 +1,5 @@
 const { generateEmbedding } = require('../embeddings/embedder');
-const { searchVectors } = require('../../vector-db/qdrantClient');
+const { searchCollection, searchVectors } = require('../../vector-db/qdrantClient');
 const Document = require('../../server/models/Document');
 
 async function retrieveContext({ query, userId, domain, topK = 5 }) {
@@ -66,4 +66,61 @@ async function retrieveContext({ query, userId, domain, topK = 5 }) {
   return uniqueResults;
 }
 
-module.exports = { retrieveContext };
+async function retrieveCollectionContext({
+  query,
+  collectionName,
+  topK = 5,
+  minScore = 0,
+  filter,
+}) {
+  const queryVector = await generateEmbedding(query);
+  const results = await searchCollection({
+    collectionName,
+    vector: queryVector,
+    filter,
+    topK,
+  });
+
+  const uniqueResults = [];
+  const seen = new Set();
+
+  for (const result of results) {
+    const payload = result.payload || {};
+    const score = typeof result.score === 'number' ? result.score : 0;
+
+    if (score < minScore || !payload.text) {
+      continue;
+    }
+
+    const enrichedResult = {
+      text: payload.text || '',
+      score,
+      documentName: payload.documentName || 'Video transcript',
+      chunkIndex: typeof payload.chunkIndex === 'number' ? payload.chunkIndex : 0,
+      pageNumber: null,
+      timestamp: payload.timestamp || null,
+    };
+
+    const dedupeKey = [
+      enrichedResult.documentName,
+      enrichedResult.chunkIndex,
+      enrichedResult.timestamp ?? 'na',
+      enrichedResult.text,
+    ].join('::');
+
+    if (seen.has(dedupeKey)) {
+      continue;
+    }
+
+    seen.add(dedupeKey);
+    uniqueResults.push(enrichedResult);
+
+    if (uniqueResults.length === topK) {
+      break;
+    }
+  }
+
+  return uniqueResults;
+}
+
+module.exports = { retrieveContext, retrieveCollectionContext };

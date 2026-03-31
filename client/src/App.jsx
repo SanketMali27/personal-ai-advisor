@@ -5,6 +5,7 @@ import ChatPage from './pages/ChatPage';
 import UploadPage from './pages/UploadPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import YoutubePage from './pages/Youtube/YoutubePage';
 
 function PrivateRoute({ children }) {
   const token = useAuthStore((state) => state.token);
@@ -37,6 +38,14 @@ export default function App() {
           element={
             <PrivateRoute>
               <UploadPage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/youtube"
+          element={
+            <PrivateRoute>
+              <YoutubePage />
             </PrivateRoute>
           }
         />
