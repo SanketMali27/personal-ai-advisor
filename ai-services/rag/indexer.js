@@ -4,6 +4,7 @@ const { serverRequire } = require('../../shared/runtime');
 const pdfParse = serverRequire('pdf-parse');
 const { v4: uuidv4 } = serverRequire('uuid');
 const { generateEmbedding } = require('../embeddings/embedder');
+const Document = require('../../server/models/Document');
 const {
   ensureCollection,
   upsertVectors,
@@ -39,6 +40,9 @@ async function indexDocument(filePath, documentId, userId, domain) {
 
   const rawText = await extractText(filePath);
   const chunks = chunkText(rawText);
+  const document = await Document.findById(documentId).lean();
+  const documentName =
+    document?.originalName || document?.filename || path.basename(filePath);
 
   const points = await Promise.all(
     chunks.map(async (chunk, idx) => {
@@ -51,8 +55,10 @@ async function indexDocument(filePath, documentId, userId, domain) {
           documentId,
           userId,
           domain,
-          chunkIndex: idx,
           text: chunk,
+          documentName,
+          chunkIndex: idx,
+          pageNumber: null,
         },
       };
     })

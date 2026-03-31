@@ -46,7 +46,17 @@ exports.getSession = async (req, res, next) => {
     }
 
     const messages = await ChatMessage.find({ sessionId: session._id }).sort('createdAt');
-    res.json({ session, messages });
+    const serializedMessages = messages.map((entry) => {
+      const message = entry.toObject();
+
+      return {
+        ...message,
+        type: message.type || 'chat',
+        sources: Array.isArray(message.sources) ? message.sources : [],
+      };
+    });
+
+    res.json({ session, messages: serializedMessages });
   } catch (err) {
     next(err);
   }
@@ -65,7 +75,7 @@ exports.sendMessage = async (req, res, next) => {
       return res.status(404).json({ error: 'Session not found' });
     }
 
-    await ChatMessage.create({ sessionId, role: 'user', message });
+    await ChatMessage.create({ sessionId, role: 'user', type: 'chat', message });
 
     const history = await ChatMessage.find({ sessionId })
       .sort('-createdAt')
@@ -76,17 +86,19 @@ exports.sendMessage = async (req, res, next) => {
       content: entry.message,
     }));
 
-    const aiResponse = await routeToAgent({
+    const { answer, sources } = await routeToAgent({
       agentType: session.agentType,
       userId: req.user.id,
       userMessage: message,
       history: historyFormatted,
     });
 
-    const assistantMsg = await ChatMessage.create({
+    await ChatMessage.create({
       sessionId,
       role: 'assistant',
-      message: aiResponse,
+      type: 'chat',
+      message: answer,
+      sources: Array.isArray(sources) ? sources : [],
     });
 
     if (session.title === `${session.agentType} chat`) {
@@ -94,7 +106,39 @@ exports.sendMessage = async (req, res, next) => {
       await session.save();
     }
 
-    res.json({ message: assistantMsg });
+    res.json({ reply: answer, sources: Array.isArray(sources) ? sources : [] });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.addSummaryMessage = async (req, res, next) => {
+  try {
+    const { sessionId, message, documentId } = req.body;
+
+    if (!sessionId || !message || !documentId) {
+      return res.status(400).json({ error: 'sessionId, documentId, and message are required' });
+    }
+
+    const session = await ChatSession.findOne({
+      _id: sessionId,
+      userId: req.user.id,
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const summaryMessage = await ChatMessage.create({
+      sessionId,
+      role: 'assistant',
+      type: 'summary',
+      documentId,
+      message,
+      sources: [],
+    });
+
+    res.status(201).json({ message: summaryMessage });
   } catch (err) {
     next(err);
   }

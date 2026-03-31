@@ -10,10 +10,23 @@ export const chatAPI = {
   createSession: (data) => api.post('/chat/create-session', data),
   getSessions: (agentType) => api.get('/chat/sessions', { params: { agentType } }),
   getSession: (id) => api.get(`/chat/session/${id}`),
-  sendMessage: (data) => api.post('/chat/message', data),
+  sendMessage: async (data) => {
+    const response = await api.post('/chat/message', data);
+
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        reply: response.data?.reply || '',
+        sources: Array.isArray(response.data?.sources) ? response.data.sources : [],
+      },
+    };
+  },
+  addSummaryMessage: (data) => api.post('/chat/summary-message', data),
 };
 
 export const documentAPI = {
   upload: (formData) => api.post('/documents', formData),
   getDocuments: (domain) => api.get('/documents', { params: domain ? { domain } : {} }),
+  summarize: (documentId) => api.post(`/documents/${documentId}/summarize`),
 };

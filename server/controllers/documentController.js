@@ -1,5 +1,10 @@
 const Document = require('../models/Document');
-const { indexDocument } = require('../../ai-services/rag/indexer');
+const path = require('path');
+const groq = require('../../ai-services/groqClient');
+const { indexDocument, extractText } = require('../../ai-services/rag/indexer');
+
+const SUMMARY_PROMPT =
+  'Summarize this document in 3-5 sentences. Be specific — mention key values, dates, names, or figures if present. Write plainly for a non-expert. Skip filler phrases. Get straight to what it contains.';
 
 exports.uploadDocument = async (req, res, next) => {
   try {
@@ -67,5 +72,51 @@ exports.getUserDocuments = async (req, res, next) => {
     res.json(docs);
   } catch (err) {
     next(err);
+  }
+};
+
+exports.summarizeDocument = async (req, res, next) => {
+  try {
+    const document = await Document.findOne({
+      _id: req.params.documentId,
+      userId: req.user.id,
+    });
+
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (document.summary !== null && document.summary !== undefined) {
+      return res.json({ summary: document.summary, cached: true });
+    }
+
+    const filePath = path.join(__dirname, '..', 'uploads', document.filename);
+    const rawText = await extractText(filePath);
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.1-8b-instant',
+      temperature: 0.2,
+      max_tokens: 220,
+      messages: [
+        { role: 'system', content: SUMMARY_PROMPT },
+        {
+          role: 'user',
+          content: rawText.slice(0, 18000),
+        },
+      ],
+    });
+
+    const summary = completion.choices[0]?.message?.content?.trim();
+
+    if (!summary) {
+      return res.status(500).json({ error: 'Summary generation failed' });
+    }
+
+    document.summary = summary;
+    await document.save();
+
+    res.json({ summary, cached: false });
+  } catch (err) {
+    console.error('Summary generation failed:', err.message);
+    res.status(500).json({ error: 'Summary generation failed' });
   }
 };

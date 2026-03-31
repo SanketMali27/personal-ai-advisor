@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const {
   uploadDocument,
   getUserDocuments,
+  summarizeDocument,
 } = require('../controllers/documentController');
 
 const storage = multer.diskStorage({
@@ -19,5 +20,6 @@ const upload = multer({
 
 router.post('/', auth, upload.single('file'), uploadDocument);
 router.get('/', auth, getUserDocuments);
+router.post('/:documentId/summarize', auth, summarizeDocument);
 
 module.exports = router;

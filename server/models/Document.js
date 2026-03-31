@@ -15,6 +15,7 @@ const documentSchema = new mongoose.Schema(
       enum: ['processing', 'indexed', 'failed'],
       default: 'processing',
     },
+    summary: { type: String, default: null },
     chunkCount: { type: Number, default: 0 },
     mimeType: String,
   },

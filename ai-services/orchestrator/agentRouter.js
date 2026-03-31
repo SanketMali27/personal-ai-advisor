@@ -1,8 +1,8 @@
-const { retrieveContext } = require('../rag/retriever');
 const { runDoctorAgent } = require('../agents/doctorAgent');
 const { runTeacherAgent } = require('../agents/teacherAgent');
 const { runFinanceAgent } = require('../agents/financeAgent');
 const { runLawyerAgent } = require('../agents/lawyerAgent');
+const { runRagPipeline } = require('../rag/pipeline');
 
 const AGENT_MAP = {
   doctor: { runner: runDoctorAgent, domain: 'medical' },
@@ -18,27 +18,18 @@ async function routeToAgent({ agentType, userId, userMessage, history }) {
     throw new Error(`Unknown agent type: ${agentType}`);
   }
 
-  let context = [];
-
-  try {
-    context = await retrieveContext({
-      query: userMessage,
-      userId,
-      domain: agentConfig.domain,
-      topK: 5,
-    });
-  } catch (error) {
-    console.error('Context retrieval failed:', error.message);
-  }
-
-  const response = await agentConfig.runner({
+  return runRagPipeline({
+    query: userMessage,
     userId,
-    userMessage,
-    history,
-    context,
+    domain: agentConfig.domain,
+    topK: 5,
+    runner: agentConfig.runner,
+    runnerInput: {
+      userId,
+      userMessage,
+      history,
+    },
   });
-
-  return response;
 }
 
 module.exports = { routeToAgent };

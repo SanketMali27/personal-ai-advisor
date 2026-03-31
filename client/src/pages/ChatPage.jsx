@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { chatAPI, documentAPI } from '../api/services';
+import DocumentCard from '../components/DocumentCard';
 import MarkdownRenderer from '../components/MarkdownRenderer';
+import SourcePanel from '../components/SourcePanel';
+import { useDocumentStore } from '../store/documentStore';
 
 const AGENT_DOMAIN_MAP = {
   doctor: 'medical',
@@ -21,26 +24,44 @@ function getUploadsBaseUrl() {
   return `${apiOrigin.origin}/uploads`;
 }
 
+function normalizeMessage(message) {
+  return {
+    ...message,
+    content: message?.content ?? message?.message ?? '',
+    type: message?.type ?? 'chat',
+    sources: Array.isArray(message?.sources) ? message.sources : [],
+  };
+}
+
+function buildSummaryMessage(documentName, summary) {
+  return `📄 **${documentName}**\n\n${summary}\n\nYou can now ask me anything about this document.`;
+}
+
 export default function ChatPage() {
   const { agentType } = useParams();
   const [sessions, setSessions] = useState([]);
   const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [documents, setDocuments] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState('');
   const [docsLoading, setDocsLoading] = useState(false);
+  const [summaryLoadingById, setSummaryLoadingById] = useState({});
+  const [summaryErrorById, setSummaryErrorById] = useState({});
   const [error, setError] = useState('');
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
   const domain = AGENT_DOMAIN_MAP[agentType];
+  const documents = useDocumentStore((state) => state.documents);
+  const setDocuments = useDocumentStore((state) => state.setDocuments);
+  const clearDocuments = useDocumentStore((state) => state.clearDocuments);
+  const updateDocument = useDocumentStore((state) => state.updateDocument);
 
   async function loadDocuments(currentDomain) {
     if (!currentDomain) {
-      setDocuments([]);
+      clearDocuments();
       return;
     }
 
@@ -59,10 +80,12 @@ export default function ChatPage() {
   useEffect(() => {
     setActiveId(null);
     setMessages([]);
-    setDocuments([]);
+    clearDocuments();
     setError('');
     setUploadStatus('');
     setFile(null);
+    setSummaryLoadingById({});
+    setSummaryErrorById({});
 
     chatAPI
       .getSessions(agentType)
@@ -86,7 +109,7 @@ export default function ChatPage() {
 
     try {
       const { data } = await chatAPI.getSession(id);
-      setMessages(data.messages);
+      setMessages((data.messages || []).map(normalizeMessage));
     } catch (err) {
       setError(err.response?.data?.error || 'Unable to load this chat.');
     }
@@ -105,8 +128,26 @@ export default function ChatPage() {
     }
   }
 
+  async function ensureSummarySession(documentName) {
+    if (activeId) {
+      return activeId;
+    }
+
+    const { data } = await chatAPI.createSession({
+      agentType,
+      title: documentName.slice(0, 60),
+    });
+
+    setSessions((prev) => [data, ...prev]);
+    setActiveId(data._id);
+    setMessages([]);
+
+    return data._id;
+  }
+
   async function handleUpload() {
     if (!file || !domain) {
+
       setError('Please select a file to upload.');
       setUploadStatus('');
       return;
@@ -142,7 +183,7 @@ export default function ChatPage() {
 
     const userMsg = input.trim();
     setInput('');
-    setMessages((prev) => [...prev, { role: 'user', message: userMsg }]);
+    setMessages((prev) => [...prev, normalizeMessage({ role: 'user', content: userMsg })]);
     setLoading(true);
     setError('');
 
@@ -151,7 +192,14 @@ export default function ChatPage() {
         sessionId: activeId,
         message: userMsg,
       });
-      setMessages((prev) => [...prev, data.message]);
+      setMessages((prev) => [
+        ...prev,
+        normalizeMessage({
+          role: 'assistant',
+          content: data.reply,
+          sources: data.sources,
+        }),
+      ]);
       setSessions((prev) =>
         prev.map((session) =>
           session._id === activeId &&
@@ -164,6 +212,59 @@ export default function ChatPage() {
       setError(err.response?.data?.error || 'Unable to send message.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSummarize(document) {
+    const documentId = document?._id;
+
+    if (!documentId || summaryLoadingById[documentId]) {
+      return;
+    }
+
+    const documentName = document.originalName || document.filename;
+    setSummaryLoadingById((prev) => ({ ...prev, [documentId]: true }));
+    setSummaryErrorById((prev) => ({ ...prev, [documentId]: '' }));
+
+    try {
+      const { data } = await documentAPI.summarize(documentId);
+      updateDocument(documentId, { summary: data.summary });
+
+      if (!data.cached) {
+        const sessionId = await ensureSummarySession(documentName);
+        const summaryMessage = buildSummaryMessage(documentName, data.summary);
+
+        try {
+          const response = await chatAPI.addSummaryMessage({
+            sessionId,
+            documentId,
+            message: summaryMessage,
+          });
+
+          setMessages((prev) => [...prev, normalizeMessage(response.data.message)]);
+        } catch (messageError) {
+          setMessages((prev) => [
+            ...prev,
+            normalizeMessage({
+              role: 'assistant',
+              type: 'summary',
+              content: summaryMessage,
+              sources: [],
+            }),
+          ]);
+          setError(
+            messageError.response?.data?.error ||
+            'Summary was generated, but the chat message could not be saved.'
+          );
+        }
+      }
+    } catch (err) {
+      setSummaryErrorById((prev) => ({
+        ...prev,
+        [documentId]: 'Summary failed. Try again.',
+      }));
+    } finally {
+      setSummaryLoadingById((prev) => ({ ...prev, [documentId]: false }));
     }
   }
 
@@ -195,7 +296,7 @@ export default function ChatPage() {
             {domain ? <span className="text-xs capitalize text-slate-500">{domain}</span> : null}
           </div>
 
-          <div className="mt-3 max-h-56 space-y-2 overflow-y-auto">
+          <div className="mt-3 max-h-72 space-y-3 overflow-y-auto">
             {docsLoading ? (
               <p className="rounded-2xl border border-stone-200 bg-stone-50 p-3 text-sm text-slate-500">
                 Loading files...
@@ -206,18 +307,14 @@ export default function ChatPage() {
               </p>
             ) : (
               documents.map((doc) => (
-                <a
+                <DocumentCard
                   key={doc._id}
-                  href={`${getUploadsBaseUrl()}/${encodeURIComponent(doc.filename)}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block rounded-2xl border border-stone-200 bg-stone-50 px-4 py-3 text-sm transition hover:border-tide hover:bg-white"
-                >
-                  <p className="truncate font-medium text-ink">{doc.originalName || doc.filename}</p>
-                  <p className="mt-1 text-xs capitalize text-slate-500">
-                    {doc.status} {doc.chunkCount ? ` - ${doc.chunkCount} chunks` : ''}
-                  </p>
-                </a>
+                  document={doc}
+                  uploadsBaseUrl={getUploadsBaseUrl()}
+                  isGenerating={Boolean(summaryLoadingById[doc._id])}
+                  error={summaryErrorById[doc._id]}
+                  onSummarize={handleSummarize}
+                />
               ))
             )}
           </div>
@@ -259,20 +356,26 @@ export default function ChatPage() {
           <div className="mx-auto max-w-3xl space-y-4">
             {messages.map((message, index) => (
               <div
-                key={`${message.role}-${index}`}
+                key={message._id || `${message.role}-${index}`}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div
-                  className={`max-w-2xl rounded-[1.6rem] px-5 py-4 text-sm leading-7 shadow-sm ${message.role === 'user'
-                    ? 'bg-ink text-white'
-                    : 'border border-stone-200 bg-white text-slate-700'
-                    }`}
-                >
+                <div className="w-full max-w-2xl">
+                  <div
+                    className={`rounded-[1.6rem] px-5 py-4 text-sm leading-7 shadow-sm ${message.role === 'user'
+                      ? 'bg-ink text-white'
+                      : 'border border-stone-200 bg-white text-slate-700'
+                      }`}
+                  >
+                    {message.role === 'assistant' ? (
+                      <MarkdownRenderer content={message.content} />
+                    ) : (
+                      <p className="m-0 whitespace-pre-wrap">{message.content}</p>
+                    )}
+                  </div>
+
                   {message.role === 'assistant' ? (
-                    <MarkdownRenderer content={message.message} />
-                  ) : (
-                    <p className="m-0 whitespace-pre-wrap">{message.message}</p>
-                  )}
+                    <SourcePanel sources={message.sources} />
+                  ) : null}
                 </div>
               </div>
             ))}
